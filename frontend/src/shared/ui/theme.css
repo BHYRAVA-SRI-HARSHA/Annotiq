@@ -1,0 +1,285 @@
+:root {
+  --color-bg: #ffffff;
+  --color-surface: #f5f6f4;
+  --color-border: #e1e3de;
+  --color-text: #17201c;
+  --color-text-muted: #667169;
+  /* Brand pair — vivid blue + indigo/violet, pulled straight from the
+     Annotiq logo (the "A" ribbon runs blue into violet) — so buttons,
+     active states, and the canvas's own selection chrome all read as the
+     same product as the logo instead of a mismatched teal/amber accent. */
+  --color-accent: #2f6fed;
+  --color-accent-soft: #e9f0ff;
+  --color-accent-contrast: #ffffff;
+  --color-amber: #d97706;
+  --color-amber-soft: #fdf1e0;
+  --color-warning: #d97706;
+  --color-danger: #c94f4f;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --shadow-panel: 0 1px 2px rgba(20, 30, 25, 0.04);
+  --shadow-card: 0 6px 20px rgba(15, 40, 35, 0.08);
+  --font-sans: "Sohne", "Söhne", Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  /* Brand tokens, taken from the Annotiq logo's own palette — deep navy
+     ink, the logo's bright blue, and the violet the wordmark fades into.
+     Used for the login hero panel and the primary-action gradient, so the
+     gradient stays a deliberate brand mark rather than decoration
+     scattered through the app. */
+  --brand-ink: #0a1024;
+  --brand-ink-soft: #121a35;
+  --brand-azure: #2f6fed;
+  --brand-violet: #7c5cff;
+  --brand-gradient: linear-gradient(135deg, var(--brand-azure), var(--brand-violet));
+}
+
+[data-theme="dark"] {
+  --color-bg: #12171a;
+  --color-surface: #1a2124;
+  --color-border: #283134;
+  --color-text: #e7ece9;
+  --color-text-muted: #93a19a;
+  --color-accent: #5b93ff;
+  --color-accent-soft: #17253f;
+  --color-accent-contrast: #06152e;
+  --color-amber: #f5a524;
+  --color-amber-soft: #2e2413;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+button {
+  font-family: inherit;
+}
+
+/* Login page split layout — collapses to a single column on narrow
+   viewports (the brand panel gives way to just the compact header logo). */
+.login-layout {
+  min-height: 100vh;
+  display: flex;
+}
+
+.login-brand-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px;
+  background: radial-gradient(circle at 15% 15%, var(--brand-ink-soft), var(--brand-ink) 60%);
+  color: #e8ecff;
+  text-align: center;
+}
+
+.login-brand-center {
+  /* The actual fix for "logo should be middle-centered": the panel used
+     to be `justify-content: space-between` across three stacked children
+     (logo, tagline, footer note), which pins the FIRST child — the logo —
+     to the top edge and only spreads the others below it. That's centered
+     left-to-right but pinned to the top vertically, not centered in the
+     panel. Grouping the logo + tagline into this one wrapper and letting
+     it grow to fill the space above the footer note (flex: 1) — centered
+     within itself both ways — puts the logo at the true middle of the
+     panel, with only the small footer note still pinned to the bottom. */
+  flex: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+}
+
+.login-form-panel {
+  width: 440px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  background: var(--color-bg);
+}
+
+.login-brand-logo {
+  /* Belt-and-suspenders centering for the hero logo: the parent's
+     align-items: center should already center it, but pinning it with its
+     own full-width flex wrapper guarantees it stays centered regardless of
+     the image's intrinsic width or any inline style overrides passed to
+     it (it previously looked off-center because nothing constrained its
+     box to the panel's full width before centering within it). A small
+     extra nudge left on top of that: the wordmark's glyphs (particularly
+     the trailing "q") carry more visual weight/ink on their right side
+     than the leading "A" does on its left, so true geometric centering
+     still reads as sitting slightly right of middle — this shifts it back
+     to looking optically centered. */
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  transform: translateX(-14px);
+}
+
+.login-mobile-logo {
+  display: none;
+  justify-content: center;
+  width: 100%;
+}
+
+.login-footer-note {
+  margin: 20px 0 0;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+@media (max-width: 860px) {
+  .login-brand-panel {
+    display: none;
+  }
+  .login-form-panel {
+    width: 100%;
+  }
+  .login-mobile-logo {
+    display: flex;
+  }
+}
+
+/* ---- Shared tool-panel look ----------------------------------------
+   Used ONLY by LabelPanel / AnnotationTree / PropertiesPanel (the
+   annotation workspace's left + right rails) — deliberately kept out of
+   the login/admin/jobs screens so this restyle is scoped to the tool
+   itself. A gradient-underlined header instead of a flat surface strip,
+   rows that lift on hover instead of sitting flush, and a softer, more
+   "product" feel overall instead of the plain flat-list look. */
+.panel-header {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 14px;
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+  position: relative;
+}
+
+.panel-header::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--brand-gradient);
+  opacity: 0.55;
+}
+
+.panel-header__title {
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  color: var(--color-text);
+}
+
+.panel-header__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--brand-gradient);
+  flex-shrink: 0;
+  box-shadow: 0 0 0 3px var(--color-accent-soft);
+}
+
+.section-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  color: var(--color-text-muted);
+}
+
+.chip-link {
+  border: none;
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 3px 9px;
+  border-radius: 999px;
+  transition: filter 0.12s ease, transform 0.12s ease;
+}
+
+.chip-link:hover {
+  filter: brightness(0.96);
+  transform: translateY(-1px);
+}
+
+.side-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px 7px 12px;
+  margin: 0 0 2px;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  border-left: 3px solid transparent;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.side-row:hover {
+  background: var(--color-surface);
+}
+
+.side-row--active {
+  background: var(--color-accent-soft);
+  border-left-color: var(--color-accent);
+  box-shadow: 0 1px 0 rgba(15, 30, 60, 0.02);
+}
+
+.banner-warn {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-left: 3px solid var(--color-danger);
+  background: var(--color-amber-soft);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+}
+
+/* Card wrapper for the tool's left/right rails — a hairline border plus a
+   very soft shadow so each rail reads as a distinct panel floating next
+   to the canvas, instead of a flat strip glued to the edge. */
+.workspace-panel {
+  background: var(--color-bg);
+  box-shadow: var(--shadow-panel);
+}
+
+/* Top control bar ("dashboard") of the annotation workspace — a slim
+   brand-gradient accent line along the bottom edge ties it visually to
+   the panel headers below without touching any other screen in the app. */
+.workspace-topbar {
+  position: relative;
+}
+
+.workspace-topbar::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--brand-gradient);
+  opacity: 0.7;
+}
+

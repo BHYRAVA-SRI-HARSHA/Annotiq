@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "ES2021",
+    // "Node" (the old "classic Node10" resolution strategy) has been
+    // removed in current TypeScript releases. "NodeNext" is the
+    // officially recommended replacement for a plain Node.js backend —
+    // since package.json here has "type": "commonjs" and nothing in src/
+    // uses .mts/.cts, every file still resolves and emits exactly as
+    // CommonJS as before; this is a resolution-strategy change only, not
+    // a module-format change, so no source files needed to change.
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2021"],
+    "outDir": "dist",
+    "rootDir": "src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "declaration": false,
+    "sourceMap": true
+  },
+  "include": ["src"]
+}

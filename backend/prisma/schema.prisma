@@ -1,0 +1,217 @@
+// Annotiq domain model.
+// See ANNOTATE_DESIGN_DOC.md Section 4 for the rationale behind the
+// generic Annotation table (one table, not one per task type).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ANNOTATOR
+  REVIEWER
+  // Read-only oversight + queue-posting role. Never gets the annotation
+  // tool — that's REVIEWER-only (see /jobs/:jobId/review) — admin only
+  // ever sees a flattened, view-only render of a submitted/done doc.
+  ADMIN
+}
+
+enum TaskType {
+  OCRKV
+  TABLES
+  LAYOUT
+  SEGRECT
+  TRANSCRIPTION_CONSENSUS
+  OCRKV_QA
+  TABLES_QA
+  LAYOUT_QA
+}
+
+enum JobStatus {
+  AVAILABLE
+  IN_PROGRESS
+  SUBMITTED
+  QA
+  DONE
+}
+
+enum ShapeType {
+  BBOX
+  POLYGON
+}
+
+enum ReviewDecision {
+  APPROVED
+  REJECTED
+  EDITED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  role         UserRole @default(ANNOTATOR)
+  createdAt    DateTime @default(now())
+
+  assignments   Assignment[]
+  annotations   Annotation[]
+  reviewsGiven  Review[]
+}
+
+model Customer {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+
+  jobs Job[]
+}
+
+model Job {
+  id             String    @id @default(cuid())
+  title          String
+  // Name of the batch/queue this task was posted as part of (Admin's
+  // "Post a new queue" form) — every task uploaded together shares one
+  // queueName so the annotator queue can show which queue a task came
+  // from. Nullable for jobs created before this field existed.
+  queueName      String?
+  // This task's 1-based position within its queue, assigned at posting
+  // time (count of jobs already in that queueName, plus one) — the "task
+  // no." half of the asset ID below. Nullable alongside queueName/assetId
+  // for the same pre-existing-data reason.
+  taskNo         Int?
+  // prod<queueName, sanitized><DDMMYYYY posting date><taskNo, zero-padded
+  // to 3 digits>, e.g. queue "ocrkv-1a", task 1, posted 16/9/2026 ->
+  // "prodocrkv1a16092026001". Generated once at posting time (see
+  // buildAssetId in lib/assetId.ts) and frozen from then on — never
+  // recomputed from the live queueName/taskNo/date, since all three keep
+  // moving after the fact. Unique since it's meant to identify this one
+  // task; nullable only for jobs posted before this field existed.
+  assetId        String?   @unique
+  // Same task, same queueName/taskNo/date, QA stage instead of prod —
+  // e.g. "qaocrkv1a16092026001" for the example above. Generated and
+  // frozen alongside assetId at posting time, not when the task actually
+  // reaches QA, so both IDs are already fixed the moment the task exists.
+  qaAssetId      String?   @unique
+  taskType       TaskType
+  status         JobStatus @default(AVAILABLE)
+  customerId     String
+  customer       Customer  @relation(fields: [customerId], references: [id])
+  sourceImageUrl String
+  instructionsMd String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Point-in-time copies of the annotation set, taken by POST
+  // /jobs/:id/submit at the moment each stage hands off — WITHOUT these,
+  // "how did the prod user submit it" is unanswerable once QA has since
+  // edited the very same Annotation rows, because there's only ever one
+  // live copy per job. Admin's per-user submission viewer reads from
+  // whichever of these matches the stage it's showing (see
+  // GET /jobs/:id/annotations?stage=), falling back to the live table
+  // only for a stage that hasn't actually been submitted yet.
+  prodSubmittedSnapshot Json?
+  qaSubmittedSnapshot   Json?
+
+  assignments Assignment[]
+  annotations Annotation[]
+  reviews     Review[] @relation("ReviewsOfJob")
+  qaReviews   Review[] @relation("QaJob")
+
+  @@index([status])
+  @@index([taskType])
+  @@index([customerId])
+  @@index([queueName])
+}
+
+model Assignment {
+  id        String    @id @default(cuid())
+  jobId     String
+  job       Job       @relation(fields: [jobId], references: [id])
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  startedAt DateTime  @default(now())
+  expiresAt DateTime
+  releasedAt DateTime?
+
+  @@index([jobId])
+  @@index([userId])
+}
+
+// One ontology (label set) per task type — populates the left LABELS panel.
+model LabelOntology {
+  id       String   @id @default(cuid())
+  taskType TaskType @unique
+  // JSON array of { name, color, shape: "bbox"|"polygon", parentLabel?: string }
+  labels   Json
+}
+
+// Generic annotation record shared by every task type.
+//
+// Two independent parent pointers, per the annotation rulebook (Sec. 3):
+// Line grouping and the Key-Value hierarchy are separate trees over the
+// same Words, not one tree — a Word sits under a Line AND, independently,
+// under a Key/Value/KeyValueContainer. One `parentAnnotationId` field could
+// not represent both memberships at once, so:
+//   - parentAnnotationId -> KV/container tree (Word -> Key/Value ->
+//     KeyValueContainer -> GroupedContainer; also cell -> row for tables)
+//   - lineParentId        -> OCR line tree (Word -> Line)
+model Annotation {
+  id                 String       @id @default(cuid())
+  jobId              String
+  job                Job          @relation(fields: [jobId], references: [id])
+  labelName          String
+  shapeType          ShapeType
+  // geometry: bbox -> {x,y,width,height}; polygon -> {points:[[x,y],...]}
+  geometry           Json
+  // properties: transcription, language, skipTranscription/skipReason,
+  // writingType, isVertical, isSignature, isWatermark, isBoxForm, isMath,
+  // isLatex, rotationAngle, strikeThrough — see ANNOTATION_RULES.md Sec. 6-7
+  properties         Json         @default("{}")
+
+  parentAnnotationId String?
+  parent             Annotation?  @relation("KvTree", fields: [parentAnnotationId], references: [id])
+  children           Annotation[] @relation("KvTree")
+
+  lineParentId       String?
+  lineParent         Annotation?  @relation("LineTree", fields: [lineParentId], references: [id])
+  lineChildren       Annotation[] @relation("LineTree")
+
+  createdById        String
+  createdBy          User         @relation(fields: [createdById], references: [id])
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  @@index([jobId])
+  @@index([parentAnnotationId])
+  @@index([lineParentId])
+}
+
+model Review {
+  id           String         @id @default(cuid())
+  qaJobId      String
+  qaJob        Job            @relation("QaJob", fields: [qaJobId], references: [id])
+  sourceJobId  String
+  sourceJob    Job            @relation("ReviewsOfJob", fields: [sourceJobId], references: [id])
+  reviewerId   String
+  reviewer     User           @relation(fields: [reviewerId], references: [id])
+  decision     ReviewDecision
+  diff         Json?
+  notes        String?
+  createdAt    DateTime       @default(now())
+
+  @@index([qaJobId])
+  @@index([sourceJobId])
+}
+
+model ConsensusResult {
+  id                   String   @id @default(cuid())
+  taskGroupId          String   @unique
+  annotationsByWorker  Json
+  mergedAnnotation     Json
+  agreementScore       Float
+  createdAt            DateTime @default(now())
+}
