@@ -63,7 +63,7 @@ export function AdminUserSubmissionsPage() {
       <h2 style={{ margin: "0 0 4px" }}>Submitted tasks</h2>
       <p style={{ margin: "0 0 20px", color: "var(--color-text-muted)" }}>{prettifyEmail(email)}</p>
 
-      {error && <p style={{ color: "#dc2626" }}>{error}</p>}
+      {error && <p style={{ color: "var(--color-danger)" }}>{error}</p>}
 
       {loading ? (
         <p>Loading…</p>

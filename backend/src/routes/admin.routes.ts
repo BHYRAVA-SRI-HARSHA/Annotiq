@@ -1,14 +1,15 @@
 import { Router } from "express";
 import { prisma } from "../lib/prisma";
 import { requireAuth, requireRole } from "../middleware/auth";
-import { listQueueRows } from "../lib/queues";
+import { listQueueRows, resolveQueueJobIds } from "../lib/queues";
 import type { JobStatus } from "@prisma/client";
 
-// Oversight API for the Admin dashboard — read-only. The admin can look at
-// who's submitted what and open the final annotated doc (which itself
-// builds its structure report and PNG/PDF export entirely client-side, see
-// frontend/src/features/admin/evaluationReport.ts), but never edits or
-// deletes anything here.
+// Oversight API for the Admin dashboard — mostly read-only. The admin can
+// look at who's submitted what and open the final annotated doc (which
+// itself builds its structure report and PNG/PDF export entirely
+// client-side, see frontend/src/features/admin/evaluationReport.ts), and
+// can also delete an active queue outright (DELETE /admin/queues/:id
+// below) — the one write this router allows.
 export const adminRouter = Router();
 
 adminRouter.use(requireAuth, requireRole("ADMIN"));
@@ -106,6 +107,42 @@ adminRouter.get("/queues", async (req, res, next) => {
     const search = req.query.search as string | undefined;
     const rows = await listQueueRows({ group: type, search });
     res.json({ type, queues: rows });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// DELETE /admin/queues/:id?type=prod|qa — removes an entire active queue
+// (every Job belonging to it) from whichever tab the admin is looking at.
+// `:id` is exactly the `id` a GET /admin/queues row comes back with: a
+// shared queueName for a real multi-doc queue, or a standalone job's own
+// id for an older/no-queue job — see the QueueRow.id comment in
+// lib/queues.ts. Scoped to the requested tab's stage statuses (via
+// resolveQueueJobIds) so deleting from "Prod queues" can never reach into
+// jobs of the same queueName that have already moved on to QA, and vice
+// versa.
+//
+// A Job can't just be deleted on its own — Annotation/Assignment/Review
+// rows all foreign-key onto it with no cascade configured in the schema —
+// so this clears those out first, in one transaction, before removing the
+// Job rows themselves. Irreversible, which is why the frontend confirms
+// with the admin before ever calling this.
+adminRouter.delete("/queues/:id", async (req, res, next) => {
+  try {
+    const type = (req.query.type as string | undefined)?.toLowerCase() === "qa" ? "qa" : "prod";
+    const jobIds = await resolveQueueJobIds(req.params.id, type);
+    if (jobIds.length === 0) {
+      return res.status(404).json({ error: "Queue not found" });
+    }
+
+    await prisma.$transaction([
+      prisma.review.deleteMany({ where: { OR: [{ qaJobId: { in: jobIds } }, { sourceJobId: { in: jobIds } }] } }),
+      prisma.annotation.deleteMany({ where: { jobId: { in: jobIds } } }),
+      prisma.assignment.deleteMany({ where: { jobId: { in: jobIds } } }),
+      prisma.job.deleteMany({ where: { id: { in: jobIds } } }),
+    ]);
+
+    res.json({ deleted: jobIds.length });
   } catch (err) {
     next(err);
   }

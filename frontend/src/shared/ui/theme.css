@@ -14,7 +14,14 @@
   --color-amber: #d97706;
   --color-amber-soft: #fdf1e0;
   --color-warning: #d97706;
+  --color-warning-soft: #fffbeb;
+  --color-warning-border: #fde68a;
+  --color-warning-text: #92400e;
   --color-danger: #c94f4f;
+  --color-success: #059669;
+  --color-success-soft: #ecfdf5;
+  --color-success-border: #a7f3d0;
+  --color-success-text: #047857;
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 16px;
@@ -45,6 +52,23 @@
   --color-accent-contrast: #06152e;
   --color-amber: #f5a524;
   --color-amber-soft: #2e2413;
+  /* The light theme's muted brick-red danger tone reads as too dark/dull
+     against a near-black page — bumped brighter here so errors stay
+     clearly legible without changing what the color "means" anywhere
+     that already reads var(--color-danger). */
+  --color-danger: #f2685f;
+  /* Same warm/warn and green/success semantic pair as the light theme, but
+     dialed to a dark-surface-appropriate tint instead of the pale
+     near-white "soft" backgrounds — those looked washed-out/glary sitting
+     on a dark page (this was the specific "not looking good" complaint
+     about the queue banners in dark mode). */
+  --color-warning-soft: #332708;
+  --color-warning-border: #7a5b13;
+  --color-warning-text: #f2c86a;
+  --color-success: #34d399;
+  --color-success-soft: #0d2a20;
+  --color-success-border: #1f6e50;
+  --color-success-text: #6ee7b7;
 }
 
 * {
@@ -60,6 +84,41 @@ body {
 
 button {
   font-family: inherit;
+}
+
+input,
+textarea,
+select {
+  color-scheme: light;
+}
+
+[data-theme="dark"] input,
+[data-theme="dark"] textarea,
+[data-theme="dark"] select {
+  /* Without this, a themed dark-mode input still renders its native
+     scrollbar/spinner/date-picker chrome (and, on some engines, its
+     placeholder/caret) using the light-mode UA palette, since the browser
+     has no way to know the page around it went dark — `color-scheme`
+     is the standard hook for that. */
+  color-scheme: dark;
+}
+
+/* Chrome/Edge/Safari autofill: the browser paints its own opaque
+   background (a pale yellow/blue) behind an autofilled field and ignores
+   a plain `background` on the input entirely, which is exactly why the
+   username/password fields on the sign-in page kept showing a light box
+   even with the rest of the page correctly switched to dark — the fix is
+   this `-webkit-box-shadow` inset trick (an effectively infinite
+   transition delay so it doesn't flash light-then-dark on autofill,
+   either) rather than `background`, which autofill overrides outright. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--color-text);
+  caret-color: var(--color-text);
+  -webkit-box-shadow: 0 0 0 1000px var(--color-bg) inset;
+  box-shadow: 0 0 0 1000px var(--color-bg) inset;
+  transition: background-color 600000s ease-in-out 0s;
 }
 
 /* Login page split layout — collapses to a single column on narrow

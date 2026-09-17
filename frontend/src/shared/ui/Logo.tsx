@@ -1,3 +1,5 @@
+import { useTheme } from "@/shared/theme";
+
 interface LogoProps {
   /** Icon/wordmark height in px. */
   size?: number;
@@ -20,7 +22,15 @@ interface LogoProps {
 // doesn't need a variant: its colors are all vivid gradient blues/purples
 // that hold up against light or dark alike.
 export function Logo({ size = 24, withWordmark = true, style, onDark = false }: LogoProps) {
-  const isDark = onDark || (typeof document !== "undefined" && document.documentElement.dataset.theme === "dark");
+  // Subscribed to the same shared theme hook the toggle button writes to
+  // (instead of reading document.documentElement.dataset.theme once at
+  // render time) so the wordmark swaps the instant the toggle fires. A
+  // one-off DOM read only updates whenever this component happens to
+  // re-render for some unrelated reason — which is why switching themes
+  // used to leave the wrong-color logo on screen until some other state
+  // change (e.g. navigating pages) forced a re-render.
+  const [theme] = useTheme();
+  const isDark = onDark || theme === "dark";
   const src = !withWordmark ? "/logo-icon.png" : isDark ? "/logo-wordmark-light.png" : "/logo-wordmark.png";
   return <img src={src} alt="Annotiq" style={{ height: size, width: "auto", display: "block", ...style }} />;
 }

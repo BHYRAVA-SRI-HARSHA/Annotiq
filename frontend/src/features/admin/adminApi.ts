@@ -39,6 +39,10 @@ export const adminApi = {
     if (search) qs.set("search", search);
     return api.get<{ type: AdminUserGroup; queues: QueueRow[] }>(`/admin/queues?${qs.toString()}`);
   },
+  // Deletes an entire active queue (every job in it) from the given tab —
+  // `id` is a QueueRow's own `id` field, exactly as listQueues returned it.
+  deleteQueue: (group: AdminUserGroup, id: string) =>
+    api.del<{ deleted: number }>(`/admin/queues/${encodeURIComponent(id)}?type=${group}`),
 
   // The final annotated doc for one submission: the job itself, its full
   // annotation set, and (when one exists) the label ontology used to

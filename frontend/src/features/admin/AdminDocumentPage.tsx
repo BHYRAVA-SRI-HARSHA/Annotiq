@@ -184,9 +184,9 @@ export function AdminDocumentPage() {
         </div>
       </div>
 
-      {downloadError && <p style={{ color: "#dc2626" }}>{downloadError}</p>}
+      {downloadError && <p style={{ color: "var(--color-danger)" }}>{downloadError}</p>}
 
-      {error && <p style={{ color: "#dc2626" }}>{error}</p>}
+      {error && <p style={{ color: "var(--color-danger)" }}>{error}</p>}
       {loading && <p>Loading…</p>}
 
       {job && (

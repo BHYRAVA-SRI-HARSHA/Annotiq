@@ -25,16 +25,26 @@ interface AuthState {
 // was already too late, the redirect had happened. That's the "hitting
 // refresh sends me back to the login page" bug: it wasn't that the
 // session was gone, it was a one-render-too-slow read of it. Reading
-// localStorage here instead means the store's initial state is correct
+// sessionStorage here instead means the store's initial state is correct
 // from the very first render, so there's no window for that redirect to
 // fire incorrectly.
+//
+// sessionStorage, not localStorage: a session this way only survives
+// refreshes/navigation *within the same tab* — it's gone the moment the
+// tab or browser closes, so opening a fresh tab (e.g. clicking a shared
+// deploy link) always lands on /login instead of silently picking back up
+// whatever account was last signed in on that browser. That's the fix for
+// "opening the Vercel link goes straight to the admin dashboard" — the
+// app wasn't misrouting, it was faithfully resuming a real (long-lived,
+// refresh-token-backed) admin session that a previous localStorage-based
+// login had left behind indefinitely.
 function readStoredSession(): AuthUser | null {
   try {
-    const raw = localStorage.getItem("annotiq_user");
-    const token = localStorage.getItem("annotiq_access_token");
+    const raw = sessionStorage.getItem("annotiq_user");
+    const token = sessionStorage.getItem("annotiq_access_token");
     if (raw && token) return JSON.parse(raw) as AuthUser;
   } catch {
-    // Malformed localStorage (e.g. hand-edited) — treat as logged out
+    // Malformed sessionStorage (e.g. hand-edited) — treat as logged out
     // rather than throwing during store creation.
   }
   return null;
@@ -56,27 +66,26 @@ export const useAuthStore = create<AuthState>((set) => ({
     // "Prod1@Annotiq.com"), so keep their own casing for display while
     // everything else about auth stays keyed off the server's response.
     const user: AuthUser = { ...res.user, email: email.trim() };
-    localStorage.setItem("annotiq_access_token", res.accessToken);
-    localStorage.setItem("annotiq_refresh_token", res.refreshToken);
-    localStorage.setItem("annotiq_user", JSON.stringify(user));
+    sessionStorage.setItem("annotiq_access_token", res.accessToken);
+    sessionStorage.setItem("annotiq_refresh_token", res.refreshToken);
+    sessionStorage.setItem("annotiq_user", JSON.stringify(user));
     set({ user, isAuthenticated: true });
   },
 
   logout: () => {
-    localStorage.removeItem("annotiq_access_token");
-    localStorage.removeItem("annotiq_refresh_token");
-    localStorage.removeItem("annotiq_user");
+    sessionStorage.removeItem("annotiq_access_token");
+    sessionStorage.removeItem("annotiq_refresh_token");
+    sessionStorage.removeItem("annotiq_user");
     set({ user: null, isAuthenticated: false });
   },
 
   // Kept for compatibility with the existing App.tsx mount effect and for
   // any future cross-tab "storage" event handling — a no-op in the common
-  // case now that initial state already reflects localStorage, but still
-  // useful if storage was written to by another tab between module load
-  // and this running.
+  // case now that initial state already reflects sessionStorage, but still
+  // useful if storage was written to between module load and this running.
   hydrateFromStorage: () => {
-    const raw = localStorage.getItem("annotiq_user");
-    const token = localStorage.getItem("annotiq_access_token");
+    const raw = sessionStorage.getItem("annotiq_user");
+    const token = sessionStorage.getItem("annotiq_access_token");
     if (raw && token) {
       set({ user: JSON.parse(raw), isAuthenticated: true });
     }

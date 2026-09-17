@@ -1,4 +1,5 @@
 import { prisma } from "./prisma";
+import type { JobStatus } from "@prisma/client";
 
 // A job's *status* — not its task type — is what decides whether it's
 // prod's work or QA's work right now. One job flows through both stages
@@ -8,8 +9,8 @@ import { prisma } from "./prisma";
 // same job shows up in exactly one of the two queues at any given moment,
 // and moves itself from one to the other purely by changing status (see
 // jobs.routes.ts' pick/submit/release handlers).
-const PROD_STAGE_STATUSES = ["AVAILABLE", "IN_PROGRESS"] as const;
-const QA_STAGE_STATUSES = ["SUBMITTED", "QA"] as const;
+export const PROD_STAGE_STATUSES = ["AVAILABLE", "IN_PROGRESS"] as const;
+export const QA_STAGE_STATUSES = ["SUBMITTED", "QA"] as const;
 
 // Within a stage, this is the "unclaimed, anyone can pick it up" status —
 // AVAILABLE for prod, SUBMITTED for qa (its IN_PROGRESS-equivalent).
@@ -122,4 +123,34 @@ export async function listQueueRows({ search, group, status, userId }: ListQueue
 
   rows.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   return rows;
+}
+
+// Resolves a queue row's `id` (as handed back by listQueueRows above — a
+// queueName for a real multi-doc queue, or a bare job id for a
+// standalone/no-queueName job) back to the concrete Job ids it stands for,
+// scoped to the given stage's statuses so deleting a row from, say, the
+// admin dashboard's "QA queues" tab only ever removes the jobs that are
+// actually sitting in that tab right now — never a same-named batch of
+// jobs that have already moved on to (or haven't yet reached) the other
+// stage.
+export async function resolveQueueJobIds(id: string, group: "prod" | "qa"): Promise<string[]> {
+  // Prisma's `{ in: ... }` filter wants a plain mutable JobStatus[] — the
+  // same readonly-tuple mismatch called out on SUBMITTED_STATUSES in
+  // admin.routes.ts, so this copies into a fresh mutable array rather than
+  // passing the readonly tuple straight through.
+  const statuses: JobStatus[] = group === "qa" ? [...QA_STAGE_STATUSES] : [...PROD_STAGE_STATUSES];
+
+  const queueJobs = await prisma.job.findMany({
+    where: { queueName: id, status: { in: statuses } },
+    select: { id: true },
+  });
+  if (queueJobs.length > 0) return queueJobs.map((j) => j.id);
+
+  // Not a queueName match — fall back to treating `id` as a standalone
+  // job's own id, exactly like the "j:" branch of the grouping above.
+  const single = await prisma.job.findFirst({
+    where: { id, status: { in: statuses } },
+    select: { id: true },
+  });
+  return single ? [single.id] : [];
 }

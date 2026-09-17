@@ -7,7 +7,9 @@ import { formatStatus, prettifyEmail } from "@/shared/format";
 import { useAuthStore } from "@/features/auth/authStore";
 import { Button } from "@/shared/ui/Button";
 import { Logo } from "@/shared/ui/Logo";
+import { Modal } from "@/shared/ui/Modal";
 import { ThemeToggle } from "@/shared/ui/ThemeToggle";
+import { TrashIcon } from "@/shared/ui/icons";
 
 export function AdminDashboardPage() {
   const user = useAuthStore((s) => s.user);
@@ -27,6 +29,13 @@ export function AdminDashboardPage() {
   const [queues, setQueues] = useState<QueueRow[]>([]);
   const [queuesLoading, setQueuesLoading] = useState(false);
   const [queuesError, setQueuesError] = useState<string | null>(null);
+
+  // The queue pending a delete confirmation — null when the dialog is
+  // closed. Kept as the whole row (not just an id) so the confirmation
+  // copy can name the queue and show how many docs it's about to remove.
+  const [queueToDelete, setQueueToDelete] = useState<QueueRow | null>(null);
+  const [deletingQueue, setDeletingQueue] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   function openGroup(g: AdminUserGroup) {
     setGroup(g);
@@ -58,6 +67,21 @@ export function AdminDashboardPage() {
   function switchQueueGroup(g: AdminUserGroup) {
     setQueueGroup(g);
     loadQueues(g);
+  }
+
+  async function confirmDeleteQueue() {
+    if (!queueToDelete) return;
+    setDeletingQueue(true);
+    setDeleteError(null);
+    try {
+      await adminApi.deleteQueue(queueGroup, queueToDelete.id);
+      setQueueToDelete(null);
+      loadQueues(queueGroup);
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : "Failed to delete queue");
+    } finally {
+      setDeletingQueue(false);
+    }
   }
 
   return (
@@ -107,7 +131,7 @@ export function AdminDashboardPage() {
         <Button onClick={() => loadQueues(queueGroup)}>Refresh</Button>
       </div>
 
-      {queuesError && <p style={{ color: "#dc2626" }}>{queuesError}</p>}
+      {queuesError && <p style={{ color: "var(--color-danger)" }}>{queuesError}</p>}
 
       {queuesLoading ? (
         <p>Loading…</p>
@@ -125,6 +149,7 @@ export function AdminDashboardPage() {
               <th style={thStyle}>Docs</th>
               <th style={thStyle}>Status</th>
               <th style={thStyle}>Posted</th>
+              <th style={{ ...thStyle, width: 40 }} />
             </tr>
           </thead>
           <tbody>
@@ -141,11 +166,101 @@ export function AdminDashboardPage() {
                 </td>
                 <td style={tdStyle}>{formatStatus(q.status)}</td>
                 <td style={tdStyle}>{new Date(q.createdAt).toLocaleString()}</td>
+                <td style={{ ...tdStyle, textAlign: "right" }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDeleteError(null);
+                      setQueueToDelete(q);
+                    }}
+                    aria-label={`Delete queue ${q.title}`}
+                    title="Delete queue"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: 28,
+                      height: 28,
+                      padding: 0,
+                      border: "none",
+                      background: "transparent",
+                      color: "var(--color-text-muted)",
+                      cursor: "pointer",
+                      borderRadius: 6,
+                      transition: "background 0.12s ease, color 0.12s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = "var(--color-danger)";
+                      e.currentTarget.style.background = "var(--color-surface)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = "var(--color-text-muted)";
+                      e.currentTarget.style.background = "transparent";
+                    }}
+                  >
+                    <TrashIcon size={15} />
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       )}
+
+      <Modal open={queueToDelete !== null} onClose={() => (deletingQueue ? undefined : setQueueToDelete(null))} width={420}>
+        {queueToDelete && (
+          <>
+            <h3 style={{ margin: "0 0 12px", fontSize: 17 }}>Delete queue "{queueToDelete.title}"?</h3>
+            <p style={{ margin: "0 0 18px", fontSize: 13.5, color: "var(--color-text-muted)", lineHeight: 1.5 }}>
+              This removes {queueToDelete.totalDocs > 1 ? `all ${queueToDelete.totalDocs} documents` : "the document"}{" "}
+              in this {queueGroup === "qa" ? "QA" : "Prod"} queue, along with any annotations, assignments, and
+              reviews already recorded against them. This action can't be undone.
+            </p>
+
+            {deleteError && (
+              <p style={{ color: "var(--color-danger)", fontSize: 13, marginTop: -8, marginBottom: 16 }}>
+                {deleteError}
+              </p>
+            )}
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <button
+                onClick={confirmDeleteQueue}
+                disabled={deletingQueue}
+                style={{
+                  textAlign: "left",
+                  padding: "11px 14px",
+                  fontSize: 14,
+                  borderRadius: 6,
+                  cursor: deletingQueue ? "not-allowed" : "pointer",
+                  opacity: deletingQueue ? 0.7 : 1,
+                  background: "#dc2626",
+                  color: "#fff",
+                  border: "1px solid #dc2626",
+                }}
+              >
+                <strong>{deletingQueue ? "Deleting…" : "Delete queue"}</strong>
+              </button>
+              <button
+                onClick={() => setQueueToDelete(null)}
+                disabled={deletingQueue}
+                style={{
+                  padding: "11px 14px",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  borderRadius: 6,
+                  border: "1px solid var(--color-accent)",
+                  color: "var(--color-accent)",
+                  background: "transparent",
+                  cursor: deletingQueue ? "not-allowed" : "pointer",
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </>
+        )}
+      </Modal>
 
       <h2 style={{ margin: "0 0 16px" }}>Manage users</h2>
 
@@ -166,7 +281,7 @@ export function AdminDashboardPage() {
         </Button>
       </div>
 
-      {error && <p style={{ color: "#dc2626" }}>{error}</p>}
+      {error && <p style={{ color: "var(--color-danger)" }}>{error}</p>}
 
       {group && (
         <>

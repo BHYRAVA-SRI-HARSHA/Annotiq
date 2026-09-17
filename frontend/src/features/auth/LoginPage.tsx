@@ -128,7 +128,7 @@ export function LoginPage() {
           </div>
 
           {error && (
-            <p style={{ color: "#dc2626", fontSize: 13, marginTop: 12, marginBottom: 0 }}>{error}</p>
+            <p style={{ color: "var(--color-danger)", fontSize: 13, marginTop: 12, marginBottom: 0 }}>{error}</p>
           )}
 
           <Button

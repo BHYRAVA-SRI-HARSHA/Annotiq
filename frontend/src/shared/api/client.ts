@@ -7,18 +7,23 @@ const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:4000";
 // instead of hanging indefinitely.
 const REQUEST_TIMEOUT_MS = 20000;
 
+// sessionStorage (not localStorage): keeps a session alive for
+// refreshes/navigation within the same tab but not beyond it, so a brand
+// new tab — e.g. someone clicking a shared deploy link — never silently
+// resumes whatever account was last logged in on that browser and always
+// hits /login first. See the matching comment in authStore.ts.
 function getAccessToken(): string | null {
-  return localStorage.getItem("annotiq_access_token");
+  return sessionStorage.getItem("annotiq_access_token");
 }
 
 function getRefreshToken(): string | null {
-  return localStorage.getItem("annotiq_refresh_token");
+  return sessionStorage.getItem("annotiq_refresh_token");
 }
 
 function clearStoredAuth() {
-  localStorage.removeItem("annotiq_access_token");
-  localStorage.removeItem("annotiq_refresh_token");
-  localStorage.removeItem("annotiq_user");
+  sessionStorage.removeItem("annotiq_access_token");
+  sessionStorage.removeItem("annotiq_refresh_token");
+  sessionStorage.removeItem("annotiq_user");
 }
 
 // The access token is short-lived (15m — see backend/src/lib/jwt.ts) so it
@@ -42,7 +47,7 @@ async function refreshAccessToken(): Promise<string | null> {
     });
     if (!res.ok) return null;
     const data = (await res.json()) as { accessToken: string };
-    localStorage.setItem("annotiq_access_token", data.accessToken);
+    sessionStorage.setItem("annotiq_access_token", data.accessToken);
     return data.accessToken;
   } catch {
     return null;

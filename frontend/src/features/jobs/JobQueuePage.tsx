@@ -242,10 +242,12 @@ export function JobQueuePage() {
           marginBottom: 12,
           border: "1px solid var(--color-border)",
           borderRadius: 4,
+          background: "var(--color-bg)",
+          color: "var(--color-text)",
         }}
       />
 
-      {error && <p style={{ color: "#dc2626" }}>{error}</p>}
+      {error && <p style={{ color: "var(--color-danger)" }}>{error}</p>}
       {selectionTaken && (
         <div
           style={{
@@ -255,9 +257,9 @@ export function JobQueuePage() {
             padding: "12px 16px",
             marginBottom: 4,
             borderRadius: 8,
-            background: "#fffbeb",
-            border: "1px solid #fde68a",
-            color: "#92400e",
+            background: "var(--color-warning-soft)",
+            border: "1px solid var(--color-warning-border)",
+            color: "var(--color-warning-text)",
             fontSize: 14,
           }}
         >
@@ -274,9 +276,9 @@ export function JobQueuePage() {
             padding: "12px 16px",
             marginBottom: 4,
             borderRadius: 8,
-            background: "#ecfdf5",
-            border: "1px solid #a7f3d0",
-            color: "#047857",
+            background: "var(--color-success-soft)",
+            border: "1px solid var(--color-success-border)",
+            color: "var(--color-success-text)",
             fontSize: 14,
           }}
         >
@@ -330,7 +332,7 @@ export function JobQueuePage() {
                   <td style={tdStyle}>
                     {row.hasResumableForUser ? (
                       <span
-                        style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "#b45309" }}
+                        style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "var(--color-warning-text)" }}
                         title="You stopped partway through a document here — Start working resumes it."
                       >
                         {/* Simple two-bar pause glyph — no icon set has one
