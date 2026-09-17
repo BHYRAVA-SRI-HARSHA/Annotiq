@@ -227,6 +227,39 @@ export function KeyValueIcon({ size = 12, style }: IconProps) {
   );
 }
 
+// Crescent-moon glyph for the theme toggle's "switch to night mode" state
+// — used instead of the word "dark" anywhere the toggle appears (the
+// login screen in particular asked for icon-only, no label).
+export function MoonIcon({ size = 15, style }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
+      <path
+        d="M20.5 14.5A8.5 8.5 0 1 1 9.5 3.5a7 7 0 0 0 11 11Z"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinejoin="round"
+        fill="currentColor"
+        fillOpacity="0.08"
+      />
+    </svg>
+  );
+}
+
+// Sun glyph for the theme toggle's "switch to day mode" state.
+export function SunIcon({ size = 15, style }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
+      <circle cx="12" cy="12" r="4.5" stroke="currentColor" strokeWidth="1.7" />
+      <path
+        d="M12 2.5v3M12 18.5v3M21.5 12h-3M5.5 12h-3M18.36 5.64l-2.12 2.12M7.76 16.24l-2.12 2.12M18.36 18.36l-2.12-2.12M7.76 7.76 5.64 5.64"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 export function ChevronDownIcon({
   size = 13,
   style,
