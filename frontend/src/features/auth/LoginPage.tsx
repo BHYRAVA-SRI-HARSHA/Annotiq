@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "./authStore";
 import { Button } from "@/shared/ui/Button";
 import { Logo } from "@/shared/ui/Logo";
+import { ThemeToggle } from "@/shared/ui/ThemeToggle";
 import { EyeIcon, EyeOffIcon } from "@/shared/ui/icons";
 
 export function LoginPage() {
@@ -36,7 +37,9 @@ export function LoginPage() {
   }
 
   return (
-    <div className="login-layout">
+    <div className="login-layout" style={{ position: "relative" }}>
+      <ThemeToggle style={{ position: "absolute", top: 16, right: 16, zIndex: 1 }} />
+
       {/* Brand panel — hidden under 860px; see theme.css */}
       <div className="login-brand-panel">
         <div className="login-brand-center">

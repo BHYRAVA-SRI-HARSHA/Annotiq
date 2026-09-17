@@ -57,6 +57,7 @@ export const adminApi = {
   // Queue-posting — the "Post a new queue" form's calls.
   listCustomers: () => api.get<{ customers: Customer[] }>("/customers"),
   createCustomer: (name: string) => api.post<Customer>("/customers", { name }),
+  deleteCustomer: (id: string) => api.del<void>(`/customers/${id}`),
   createJob: (input: CreateJobInput) => {
     const form = new FormData();
     form.set("title", input.title);

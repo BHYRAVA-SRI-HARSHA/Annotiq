@@ -6,6 +6,7 @@ import { formatStatus, prettifyEmail, stageAssetId } from "@/shared/format";
 import { useAuthStore } from "@/features/auth/authStore";
 import { Button } from "@/shared/ui/Button";
 import { Logo } from "@/shared/ui/Logo";
+import { ThemeToggle } from "@/shared/ui/ThemeToggle";
 
 export function AdminUserSubmissionsPage() {
   const { userId } = useParams<{ userId: string }>();
@@ -50,6 +51,7 @@ export function AdminUserSubmissionsPage() {
         <Logo size={22} />
         <span style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <span>Hello, {user?.email}</span>
+          <ThemeToggle />
           <Button onClick={logout}>Log out</Button>
         </span>
       </header>

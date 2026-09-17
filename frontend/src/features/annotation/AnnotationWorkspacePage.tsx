@@ -7,6 +7,7 @@ import { Job } from "@/shared/api/types";
 import { stageAssetId } from "@/shared/format";
 import { Button } from "@/shared/ui/Button";
 import { Logo } from "@/shared/ui/Logo";
+import { ThemeToggle } from "@/shared/ui/ThemeToggle";
 import { LabelPanel } from "./panels/LabelPanel";
 import { AnnotationTree } from "./panels/AnnotationTree";
 import { PropertiesPanel } from "./panels/PropertiesPanel";
@@ -43,7 +44,6 @@ export function AnnotationWorkspacePage({ mode = "annotate" }: AnnotationWorkspa
   // clear, visible acknowledgment that it worked.
   const [showSavedToast, setShowSavedToast] = useState(false);
   const savedToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [theme, setTheme] = useState<"light" | "dark">("light");
   // "Submit" -> "Submitting..." while the save + /submit round-trip is in
   // flight, so a slow network doesn't look like a dead button inviting a
   // second click (which would otherwise double-fire the request).
@@ -202,10 +202,6 @@ export function AnnotationWorkspacePage({ mode = "annotate" }: AnnotationWorkspa
       window.removeEventListener("pagehide", flush);
     };
   }, [locked]);
-
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-  }, [theme]);
 
   // Finalizes the task and always heads back to the job queue. /submit is
   // stage-aware server-side: an annotator submitting an IN_PROGRESS job
@@ -429,9 +425,7 @@ export function AnnotationWorkspacePage({ mode = "annotate" }: AnnotationWorkspa
 
             <Divider />
 
-            <Button onClick={() => setTheme((t) => (t === "light" ? "dark" : "light"))}>
-              {theme === "light" ? "Dark" : "Light"}
-            </Button>
+            <ThemeToggle />
           </>
         )}
       </div>

@@ -2,6 +2,7 @@ import { ChangeEvent, DragEvent, FormEvent, useEffect, useRef, useState } from "
 import { adminApi } from "@/features/admin/adminApi";
 import { Customer, TaskType } from "@/shared/api/types";
 import { Button } from "@/shared/ui/Button";
+import { TrashIcon } from "@/shared/ui/icons";
 
 // Only OCRKV has a seeded label ontology today (see backend/src/seed.ts) —
 // every other task type is UI-and-schema-ready but has no LabelOntology
@@ -37,6 +38,7 @@ export function PostQueueForm({ onPosted }: PostQueueFormProps) {
   const [customerId, setCustomerId] = useState<string>("");
   const [addingCustomer, setAddingCustomer] = useState(false);
   const [newCustomerName, setNewCustomerName] = useState("");
+  const [deletingCustomer, setDeletingCustomer] = useState(false);
   const [instructionsMd, setInstructionsMd] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -103,6 +105,28 @@ export function PostQueueForm({ onPosted }: PostQueueFormProps) {
     setCustomerId(customer.id);
     setNewCustomerName("");
     setAddingCustomer(false);
+  }
+
+  async function handleDeleteCustomer() {
+    if (!customerId) return;
+    const target = customers.find((c) => c.id === customerId);
+    if (!target) return;
+    if (!window.confirm(`Delete customer "${target.name}"? This can't be undone.`)) return;
+
+    setError(null);
+    setDeletingCustomer(true);
+    try {
+      await adminApi.deleteCustomer(customerId);
+      setCustomers((prev) => {
+        const next = prev.filter((c) => c.id !== customerId);
+        setCustomerId(next[0]?.id ?? "");
+        return next;
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete customer.");
+    } finally {
+      setDeletingCustomer(false);
+    }
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -313,6 +337,17 @@ export function PostQueueForm({ onPosted }: PostQueueFormProps) {
                   </select>
                   <Button type="button" variant="secondary" onClick={() => setAddingCustomer(true)}>
                     + New
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={handleDeleteCustomer}
+                    disabled={!customerId || deletingCustomer}
+                    title={customerId ? "Delete selected customer" : undefined}
+                    aria-label="Delete selected customer"
+                    style={{ padding: "7px 10px", color: "var(--color-danger)" }}
+                  >
+                    <TrashIcon size={14} />
                   </Button>
                 </div>
               )}

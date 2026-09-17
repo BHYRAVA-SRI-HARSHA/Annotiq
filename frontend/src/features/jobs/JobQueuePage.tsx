@@ -7,6 +7,7 @@ import { QueueRow } from "@/shared/api/types";
 import { formatStatus } from "@/shared/format";
 import { Button } from "@/shared/ui/Button";
 import { Logo } from "@/shared/ui/Logo";
+import { ThemeToggle } from "@/shared/ui/ThemeToggle";
 import { useAuthStore } from "@/features/auth/authStore";
 
 export function JobQueuePage() {
@@ -175,6 +176,7 @@ export function JobQueuePage() {
         <Logo size={22} />
         <span style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", rowGap: 8 }}>
           <span style={{ color: "var(--color-text-muted)" }}>Hello, {user?.email}</span>
+          <ThemeToggle />
           <Button onClick={logout}>Log out</Button>
         </span>
       </header>

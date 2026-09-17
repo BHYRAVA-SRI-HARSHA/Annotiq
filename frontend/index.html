@@ -5,6 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/png" href="/logo-icon.png" />
     <title>Annotiq</title>
+    <script>
+      // Applied before the app mounts/paints so a saved dark-mode
+      // preference doesn't flash as light for a frame on load — kept in
+      // sync with the STORAGE_KEY in src/shared/theme.ts.
+      (function () {
+        try {
+          var stored = window.localStorage.getItem("annotiq:theme");
+          if (stored === "dark") document.documentElement.dataset.theme = "dark";
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

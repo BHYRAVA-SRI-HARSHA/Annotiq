@@ -7,6 +7,7 @@ import { formatStatus, prettifyEmail } from "@/shared/format";
 import { useAuthStore } from "@/features/auth/authStore";
 import { Button } from "@/shared/ui/Button";
 import { Logo } from "@/shared/ui/Logo";
+import { ThemeToggle } from "@/shared/ui/ThemeToggle";
 
 export function AdminDashboardPage() {
   const user = useAuthStore((s) => s.user);
@@ -77,6 +78,7 @@ export function AdminDashboardPage() {
             <span>Hello, {user?.email}</span>
             <span style={badgeStyle}>Admin</span>
           </span>
+          <ThemeToggle />
           <Button onClick={logout}>Log out</Button>
         </span>
       </header>
